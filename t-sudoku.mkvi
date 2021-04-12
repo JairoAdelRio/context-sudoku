@@ -1,0 +1,132 @@
+%D \module
+%D   [     file=t-sudoku,
+%D      version=2021-04-12,
+%D        title=\CONTEXT\ User Module,
+%D     subtitle=Sudokus for ConTeXt,
+%D       author=Jairo A. del Rio,
+%D         date=\currentdate,
+%D    copyright=Jairo A. del Rio,
+%D        email=jairoadelrio6@gmail.com,
+%D      license=GNU General Public License v3]
+
+%C Copyright (C) 2021 Jairo A. del Rio
+%C
+%C This program is free software; you can redistribute it and/or modify
+%C it under the terms of the GNU General Public License as published by
+%C the Free Software Foundation; either version 3 of the License, or
+%C (at your option) any later version.
+%C
+%C This program is distributed in the hope that it will be useful,
+%C but WITHOUT ANY WARRANTY; without even the implied warranty of
+%C MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%C GNU General Public License for more details.
+%C
+%C You should have received a copy of the GNU General Public License
+%C along with this program; if not, write to the Free Software Foundation,
+%C Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+
+\writestatus{loading}{Sudokus for ConTeXt}
+\ctxloadluafile{t-sudoku}
+
+\unprotect
+
+\installnamespace                      {sudoku}
+\installsimplecommandhandler\????sudoku{sudoku}\????sudoku
+
+%D Aliasing
+
+\let\setupsudokus\setupsudoku
+
+\setupsudokus
+    [\c!size=1.5em,
+     \c!align={\v!middle,\v!lohi},
+     \c!backgroundcolor=gray]
+
+\def\sudokutable#1%
+    {\quitvmode\bTABLE
+        [\c!height=\sudokuparameter\c!size,
+         \c!width=\sudokuparameter\c!size,
+         \c!align=\sudokuparameter\c!align]
+    #1%
+    \eTABLE}
+
+\def\sudoku#grid{\sudokutable{\clf_sudoku{#grid}}}
+
+\def\sudokufile#file{\sudokutable{\clf_sudokufile{#file}}}
+
+\def\solvesudoku#grid{\sudokutable{\clf_solvesudoku{#grid}}}
+
+\def\solvesudokufile#file{\sudokutable{\clf_solvesudokufile{#file}}}
+
+\let\solvedsudoku\solvesudoku
+\let\solvedsudokufile\solvesudokufile
+
+\protect
+
+\continueifinputfile{t-sudoku.mkvi}
+
+\usecolors[svg]
+\setupsudokus[backgroundcolor=paleturquoise]
+\starttext
+\startalignment[middle]
+\sudoku{
+.........
+........1
+.....2.3.
+....1...4
+..3.5....
+.26....7.
+14...8...
+5........
+7....6.2.
+}
+\space 
+\solvesudoku{
+.........
+........1
+.....2.3.
+....1...4
+..3.5....
+.26....7.
+14...8...
+5........
+7....6.2.
+}
+
+\sudoku{
+000000001
+000002030
+004056000
+000004500
+010700000
+080000400
+000030000
+000100008
+205000000
+}
+\space
+\solvedsudoku{
+000000001
+000002030
+004056000
+000004500
+010700000
+080000400
+000030000
+000100008
+205000000
+}
+
+\sudokufile{sudokutest01.txt}
+\space
+\solvesudokufile{sudokutest01.txt}
+
+\sudokufile{sudokutest02.txt}
+\space
+\solvesudokufile{sudokutest02.txt}
+
+\sudokufile{sudokutest03.txt}
+\space
+\solvesudokufile{sudokutest03.txt}
+\stopalignment
+\stoptext
