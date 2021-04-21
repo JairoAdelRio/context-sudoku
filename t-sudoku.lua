@@ -1,11 +1,19 @@
 if not modules then modules = { } end modules ['t-sudoku'] = 
 {
-    version   = "2021-04-12",
+    version   = "2021-04-21",
     comment   = "Sudokus for ConTeXt",
     author    = "Jairo A. del Rio",
     copyright = "Jairo A. del Rio",
     license   = "GNU General Public License v3"
 }
+
+--[[
+Sources:
+
+https://norvig.com/sudoku.html
+https://naokishibuya.medium.com/peter-norvigs-sudoku-solver-25779bb349ce
+https://gist.github.com/neilalbrock/894520
+]]
 
 local table    = table
 local math     = math
@@ -26,6 +34,10 @@ local sort     = table.sort
 local context    = context       
 local interfaces = interfaces
 local implement  = interfaces.implement
+
+--Take a look for definitions
+--https://source.contextgarden.net/tex/context/base/mkiv/l-table.lua
+--https://source.contextgarden.net/tex/context/base/mkiv/l-io.lua
 
 local contains   = table.contains
 local copy       = table.copy
@@ -130,9 +142,8 @@ for _, s in ipairs(squares) do
 end
 
 local   grid_chars, grid_values, parse_grid, assign, 
-        eliminate, solve, search
+        eliminate, solve, search, random_sudoku
 
---It works. Don't change it 
 --Input: a string representation 
 --Output: an association between squares and characters
 grid_values = function(grid)
@@ -163,7 +174,6 @@ parse_grid = function(grid)
     return values
 end
 
---It WORKS. DON'T TOUCH IT 
 assign = function(values, s, d)
     --Eliminate all the other values and propagate
     local result = true
@@ -180,7 +190,6 @@ assign = function(values, s, d)
     end
 end
 
---IT ALSO WORKS. PLZ DON'T TOUCH IT
 eliminate = function(values, s, d)
     --Eliminate d from values[s]
     if not values[s]:find(d) then
@@ -252,26 +261,113 @@ search = function(values)
     return false
 end 
 
+--Unused until I find a handy way to interface with ConTeXt
+
+random_sudoku = function(N)
+    local N = N or 17
+    local result = {}
+    local values = {}
+    for _, v in ipairs(squares) do
+        values[s] = digits
+    end
+    for _, v in ipairs(shuffle(squares)) do
+        if not assign(values, s, values[rows[random(9)]..columns[random(9)]]) then
+            break
+        end
+        local ds = {}
+        for _, s in ipairs(squares) do
+            if #values[s] == 1 then
+                insert(ds, values[s])
+            end
+        end
+        if #ds >= N and #unique(ds) >= 8 then
+            for _, i in ipairs(rows) do
+                for __, j in ipairs(columns) do
+                    insert(result, #values[i..j]>0 and values[i..j] or "0")
+                end
+            end
+            return concat(result)
+        end
+    end
+    return random_sudoku(N)
+end
+
 --[[
 ConTeXt functions
 ]]
 
 local ctx_sudoku, ctx_solvesudoku, 
-      ctx_sudokufile, ctx_solvesudokufile, ctx_typeset
+      ctx_sudokufile, ctx_solvesudokufile, 
+      ctx_randomsudoku, ctx_sudokufunction, 
+      ctx_typeset, ctx_errorprompt
 
-ctx_typeset = function(s)
-    local settings = {
-        {
-            background="color",
-            backgroundcolor=[[\sudokuparameter{backgroundcolor}]],
-        },
-        {}
+
+ctx_sudoku = function(grid, data)
+    local ok, result = pcall(grid_values, grid)
+    if ok then
+        ctx_typeset(result, data)
+    else
+        ctx_errorprompt("Invalid sudoku")
+    end
+end
+
+ctx_sudokufile = function(file, data)
+    local ok, result = pcall(grid_values, loaddata(file))
+    if ok then
+        ctx_typeset(result, data)
+    else
+        ctx_errorprompt("Invalid sudoku file")
+    end
+end
+
+ctx_solvesudoku = function(grid, data)
+    local ok, result = pcall(solve, grid)
+    if ok then
+        if result then
+            ctx_typeset(result, data)
+        else
+            ctx_errorprompt("Impossible to find a solution")
+        end
+    else
+        ctx_errorprompt("Invalid sudoku")
+    end
+end
+
+ctx_solvesudokufile = function(file, data)
+    local ok, result = pcall(solve, loaddata(file))
+    if ok then
+        if result then
+            ctx_typeset(result, data)
+        else
+            ctx_errorprompt("Impossible to find a solution")
+        end
+    else
+        ctx_errorprompt("Invalid sudoku file")
+    end
+end
+
+local ctx_sudokufunctions = {
+    sudoku          = ctx_sudoku,
+    sudokufile      = ctx_sudokufile,
+    solvesudoku     = ctx_solvesudoku,
+    solvesudokufile = ctx_solvesudokufile
+}
+
+ctx_sudokufunction = function(t)
+    ctx_sudokufunctions[t.name](t.content, t)
+end
+
+ctx_typeset = function(grid, data)
+    local alternatives = 
+    {
+        {background = data.oddbackground,  backgroundcolor = data.oddbackgroundcolor }, 
+        {background = data.evenbackground, backgroundcolor = data.evenbackgroundcolor}
     }
     for i, a in ipairs(rows) do
         context.bTR()
         for j, b in ipairs(columns) do
-            local r = s[a..b]
-            context.bTD(settings[(ceil(i/3)+ceil(j/3))%2+1])
+            local r = grid[a..b]
+            context.bTD(alternatives[(ceil(i/3)+ceil(j/3))%2+1])
             context(r == '0' and "" or r == '.' and "" or r)
             context.eTD()
         end
@@ -279,42 +375,13 @@ ctx_typeset = function(s)
     end
 end
 
-ctx_sudoku = function(s)
-    ctx_typeset(grid_values(s))
-end
-
-ctx_sudokufile = function(file)
-    ctx_typeset(grid_values(loaddata(file)))
-end
-
-ctx_solvesudoku = function(s)
-    ctx_typeset(solve(s))
-end
-
-ctx_solvesudokufile = function(file)
-    ctx_typeset(solve(loaddata(file)))
+ctx_errorprompt = function(text)
+    context.quitvmode()
+    context.framed(context.nested.type(text))
 end
 
 implement{
-    name      = "sudoku",
-    arguments = {"string"},
-    actions   = ctx_sudoku 
-}
-
-implement{
-    name      = "sudokufile",
-    arguments = {"string"},
-    actions   = ctx_sudokufile 
-}
-
-implement{
-    name      = "solvesudoku",
-    arguments = {"string"},
-    actions   = ctx_solvesudoku 
-}
-
-implement{
-    name      = "solvesudokufile",
-    arguments = {"string"},
-    actions   = ctx_solvesudokufile
+    name      = "sudokufunction",
+    arguments = {"hash"},
+    actions   = ctx_sudokufunction
 }

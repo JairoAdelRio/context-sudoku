@@ -1,6 +1,6 @@
 %D \module
 %D   [     file=t-sudoku,
-%D      version=2021-04-12,
+%D      version=2021-04-21,
 %D        title=\CONTEXT\ User Module,
 %D     subtitle=Sudokus for ConTeXt,
 %D       author=Jairo A. del Rio,
@@ -25,108 +25,156 @@
 %C along with this program; if not, write to the Free Software Foundation,
 %C Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
+%D I'm not fond of sudokus. In fact, I seldom solve one or two in a row.
+%D However, they come in handy in puzzle books and existing packages are 
+%D LaTeX or Python specific. Being so, a ConTeXt dedicated module is 
+%D more comfortable and customizable. After all, ConTeXt is about control
+%D as Hans often says.
+
 \writestatus{loading}{Sudokus for ConTeXt}
+\writestatus{loading}{A Lua port of Peter Norvig's sudoku solver}
+
+\startmodule[sudoku]
+
+%D As always, Lua does the hard job
+
 \ctxloadluafile{t-sudoku}
 
 \unprotect
 
+%D \type{\definesudoku} is not really required
+
 \installnamespace                      {sudoku}
 \installsimplecommandhandler\????sudoku{sudoku}\????sudoku
 
-%D Aliasing
+%D Some aliases
 
 \let\setupsudokus\setupsudoku
+
+%D Basic setups
+%D
+%D In order not to define new constants/variables, recycling existing 
+%D ones looks better (trick learnt from Aditya Mahajan's modules).
 
 \setupsudokus
     [\c!size=1.5em,
      \c!align={\v!middle,\v!lohi},
-     \c!backgroundcolor=gray]
+     \v!even\c!background=\v!color,
+     \v!odd\c!background=\v!color,
+     \v!even\c!backgroundcolor=white,     
+     \v!odd\c!backgroundcolor=gray]
 
-\def\sudokutable#1%
-    {\quitvmode\bTABLE
-        [\c!height=\sudokuparameter\c!size,
-         \c!width=\sudokuparameter\c!size,
-         \c!align=\sudokuparameter\c!align]
-    #1%
-    \eTABLE}
+%D A generic sudoku generator macro
+%D Yeah, I'm that lazy
 
-\def\sudoku#grid{\sudokutable{\clf_sudoku{#grid}}}
+\unexpanded\def\sudokufunction_name{\dodoubleempty\sudokufunction_direct}
 
-\def\sudokufile#file{\sudokutable{\clf_sudokufile{#file}}}
+%D Passing values to TABLE's is easier and unknown keys will be ignored. 
+%D However, we need to enforce a square shape.Hence the need to passing 
+%D values twice.
 
-\def\solvesudoku#grid{\sudokutable{\clf_solvesudoku{#grid}}}
+\def\sudokufunction_direct[#name][#parameters]#content%
+    {\begingroup%
+     \ifsecondargument
+     \setupTABLE[#parameters]%
+     \setupsudokus[#parameters]%
+     \fi
+     \bTABLE
+     [\c!align=\sudokuparameter\c!align,
+      \c!width=\sudokuparameter\c!size,
+      \c!height=\sudokuparameter\c!size]
+     \clf_sudokufunction
+     [name                =#name,
+      content             ={#content},
+      evenbackground      =\sudokuparameter{\v!even\c!background},
+      oddbackground       =\sudokuparameter{\v!odd\c!background},
+      evenbackgroundcolor =\sudokuparameter{\v!even\c!backgroundcolor},
+      oddbackgroundcolor  =\sudokuparameter{\v!odd\c!backgroundcolor}]
+     \eTABLE%
+     \endgroup}
 
-\def\solvesudokufile#file{\sudokutable{\clf_solvesudokufile{#file}}}
+%D Sudoku macros
+
+\def\sudoku{\sudokufunction_name[sudoku]}
+\def\sudokufile{\sudokufunction_name[sudokufile]}
+\def\solvesudoku{\sudokufunction_name[solvesudoku]}
+\def\solvesudokufile{\sudokufunction_name[solvesudokufile]}
+
+%D More aliases
 
 \let\solvedsudoku\solvesudoku
 \let\solvedsudokufile\solvesudokufile
 
 \protect
 
+\stopmodule
+
 \continueifinputfile{t-sudoku.mkvi}
 
+%D Some examples
+
 \usecolors[svg]
-\setupsudokus[backgroundcolor=paleturquoise]
+\setupsudokus[oddbackgroundcolor=paleturquoise,evenbackgroundcolor=aliceblue]
 \starttext
-\startalignment[middle]
+%%%%
+\startsection[title={\type{\sudoku}}]
 \sudoku{
-.........
-........1
-.....2.3.
-....1...4
-..3.5....
-.26....7.
-14...8...
-5........
-7....6.2.
+......... ........1 .....2.3.
+....1...4 ..3.5.... .26....7.
+14...8... 5........ 7....6.2.
 }
-\space 
-\solvesudoku{
-.........
-........1
-.....2.3.
-....1...4
-..3.5....
-.26....7.
-14...8...
-5........
-7....6.2.
-}
-
+\blank[line]
 \sudoku{
-000000001
-000002030
-004056000
-000004500
-010700000
-080000400
-000030000
-000100008
-205000000
+000000001 000002030 004056000
+000004500 010700000 080000400
+000030000 000100008 205000000
 }
-\space
+\blank[line]
+\sudoku
+{
+000000000 111111111 222222222
+333333333 444444444 555555555
+666666666 777777777 888888888
+}
+\blank[line]
+\sudoku{666}
+\stopsection
+%%%%
+\startsection[title={\type{\solvesudoku}}]
+\solvesudoku[size=9mm,evenbackgroundcolor=gray,oddbackgroundcolor=white]{
+.......... .......1 .....2.3.
+....1...4. .3.5.... .26....7.
+14...8...5 ........ 7....6.2.
+}
+\blank[line]
 \solvedsudoku{
-000000001
-000002030
-004056000
-000004500
-010700000
-080000400
-000030000
-000100008
-205000000
+000000001 000002030 004056000
+000004500 010700000 080000400
+000030000 000100008 205000000
 }
-
-\sudokufile{sudokutest01.txt}
-\space
-\solvesudokufile{sudokutest01.txt}
-
-\sudokufile{sudokutest02.txt}
-\space
-\solvesudokufile{sudokutest02.txt}
-
+\blank[line]
+\solvesudoku
+{
+000000000 111111111 222222222
+333333333 444444444 555555555
+666666666 777777777 888888888
+}
+\stopsection
+%%%%
+\startsection[title={\type{\sudokufile}}]
+\sudokufile[evenbackgroundcolor=cornsilk,oddbackgroundcolor=pink]{sudokutest01.txt}
+\blank[line]
 \sudokufile{sudokutest03.txt}
-\space
+\blank[line]
+\sudokufile[rulethickness=2pt,evenbackgroundcolor=cornsilk]{sudokutest02.txt}
+\stopsection
+%%%%
+\startsection[title={\type{\solvesudokufile}}]
+\setupsudokus[oddbackgroundcolor=plum,evenbackgroundcolor=pink]%
+\solvesudokufile[oddbackgroundcolor=thistle]{sudokutest01.txt}
+\blank[line]
+\solvesudokufile{sudokutest02.txt}
+\blank[line]
 \solvesudokufile{sudokutest03.txt}
-\stopalignment
+\stopsection
 \stoptext
