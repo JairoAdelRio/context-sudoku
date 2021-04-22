@@ -19,7 +19,7 @@ It provides four commands for typesetting sudokus and a command handler:
    7 7 7 8 8 8 9 9 9
    ```
   
-  The available parameters so far are the following:
+   The available parameters so far are the following:
   
   * `size`: for cell size. Default: `1.5em`
   * `align`: number alignment inside each cell. Default: `middle,lohi`
