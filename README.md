@@ -25,8 +25,8 @@ It provides four commands for typesetting sudokus and a command handler:
   * `align`: number alignment inside each cell. Default: `middle,lohi`
   * `evenbackground`: background for even blocks. Default: `color`
   * `oddbackground`: background for odd blocks. Default: `color`
-  * `evenbackgroundcolor`: background color for even blocks. Default: `gray`
-  * `oddbackgroundcolor`: background color for odd blocks. Default: `white`
+  * `evenbackgroundcolor`: background color for even blocks. Default: `white`
+  * `oddbackgroundcolor`: background color for odd blocks. Default: `gray`
 
 2. `\sudoku[#parameters]{#content}`: typesets a sudoku. 
 3. `\sudokufile[#parameters]{#content}`: typesets a sudoku from a file.
